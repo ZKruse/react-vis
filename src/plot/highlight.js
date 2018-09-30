@@ -2,7 +2,7 @@ import React from 'react';
 import AbstractSeries from './series/abstract-series';
 import {getAttributeScale} from 'utils/scales-utils';
 import PropTypes from 'prop-types';
-
+import {isNullOrUndefined, isUndefined} from 'util';
 function getLocs(evt) {
   const xLoc = evt.type === 'touchstart' ? evt.pageX : evt.offsetX;
   const yLoc = evt.type === 'touchstart' ? evt.pageY : evt.offsetY;
@@ -18,6 +18,163 @@ class Highlight extends AbstractSeries {
     startLocY: 0,
     dragArea: null
   };
+
+  componentDidMount() {
+    // Couldn't get normal refs to assign to the Highlight control for some reason
+    // so this exposes the 3 control methods to the control prop method. 
+    // The parent class can then access them with the following declaration:
+    // <Highlight control={(ctrl) => this.highlightControls = ctrl} ... />
+    // The parent class can subsequently call 
+    // this.highlightControls.highlightAll()/reset()/setHighlightArea(newHighlightArea)
+    if(!isNullOrUndefined(this.props.control))
+    {
+      this.props.control({highlightAll: () => this.highlightAll(),
+                          reset: () => this.reset(),
+                          setHighlightArea: (newHighlightArea) => this.setHighlightArea(newHighlightArea)});
+    }
+  }
+
+  componentWillReceiveProps(nextProps) {
+    const {highlightHeight,
+      highlightWidth,
+      innerWidth,
+      innerHeight,
+      marginLeft,
+      marginBottom,
+      marginTop,
+      marginRight,
+      onBrushEnd,
+      newHighlightArea} = nextProps;
+
+      if(!isUndefined(newHighlightArea) && newHighlightArea !== this.props.newHighlightArea)
+      {
+        const xScale = getAttributeScale(this.props, 'x');
+        const yScale = getAttributeScale(this.props, 'y');
+
+        const plotHeight = innerHeight + marginTop + marginBottom;
+        const plotWidth = innerWidth + marginLeft + marginRight;
+
+        let bottomPos = highlightHeight || plotHeight;
+        if(!isNullOrUndefined(newHighlightArea.bottom)) {
+          bottomPos = yScale(newHighlightArea.bottom) + marginTop
+        }
+        let topPos = 0 
+        if(!isNullOrUndefined(newHighlightArea.top)){
+          topPos = yScale(newHighlightArea.top) + marginTop
+        }
+        let leftPos = 0 + marginLeft;
+        if (!isNullOrUndefined(newHighlightArea.left)) {
+          leftPos = xScale(newHighlightArea.left) + marginLeft;
+        }
+        let rightPos = highlightWidth || plotWidth;
+        if(!isNullOrUndefined(newHighlightArea.right)) {
+          rightPos = xScale(newHighlightArea.right) + marginLeft;
+        }
+
+        const brushArea = {
+          bottom: bottomPos,
+          right: rightPos,
+          left: leftPos,
+          top: topPos
+        };
+
+        const noHorizontal = Math.abs(brushArea.right - brushArea.left) < 5;
+        const noVertical = Math.abs(brushArea.top - brushArea.bottom) < 5;
+        // Invoke the callback with null if the selected area was < 5px
+        const isNulled = noVertical || noHorizontal;
+
+        this.setState({brushArea, dragArea: brushArea});
+        onBrushEnd(!isNulled ? this._convertAreaToCoordinates(brushArea) : null);
+      }
+  }
+
+  reset() {
+    const {onBrushEnd} = this.props;
+    const brushArea = {top: 0, right: 0, bottom: 0, left: 0};
+    this.setState({brushArea, dragArea: brushArea});
+
+    onBrushEnd(null);
+  }
+
+  highlightAll() {
+    const {highlightHeight,
+      innerWidth,
+      innerHeight,
+      marginLeft,
+      marginBottom,
+      marginTop,
+      marginRight,
+      onBrushEnd} = this.props;
+
+    const plotHeight = innerHeight + marginTop + marginBottom;
+    const touchHeight = highlightHeight || plotHeight;
+
+    const brushArea = {
+      bottom: touchHeight,
+      right: innerWidth + marginLeft - marginRight,
+      left: 0 + marginLeft,
+      top: 0
+    };
+
+    const noHorizontal = Math.abs(brushArea.right - brushArea.left) < 5;
+    const noVertical = Math.abs(brushArea.top - brushArea.bottom) < 5;
+    // Invoke the callback with null if the selected area was < 5px
+    const isNulled = noVertical || noHorizontal;
+
+    this.setState({brushArea, dragArea: brushArea});
+    onBrushEnd(!isNulled ? this._convertAreaToCoordinates(brushArea) : null);
+    
+  }
+
+  setHighlightArea(newHighlightArea) {
+    const {highlightHeight,
+      highlightWidth,
+      innerWidth,
+      innerHeight,
+      marginLeft,
+      marginBottom,
+      marginTop,
+      marginRight,
+      onBrushEnd} = this.props;
+    
+    const xScale = getAttributeScale(this.props, 'x');
+    const yScale = getAttributeScale(this.props, 'y');
+
+    const plotHeight = innerHeight + marginTop + marginBottom;
+    const plotWidth = innerWidth + marginLeft + marginRight;
+
+    let bottomPos = highlightHeight || plotHeight;
+    if(!isNullOrUndefined(newHighlightArea.bottom)) {
+      bottomPos = yScale(newHighlightArea.bottom) + marginTop;
+    }
+    let topPos = 0 
+    if(!isNullOrUndefined(newHighlightArea.top)){
+      topPos = yScale(newHighlightArea.top) + marginTop;
+    }
+    let leftPos = 0 + marginLeft;
+    if (!isNullOrUndefined(newHighlightArea.left)) {
+      leftPos = xScale(newHighlightArea.left) + marginLeft;
+    }
+    let rightPos = highlightWidth || plotWidth;
+    if(!isNullOrUndefined(newHighlightArea.right)) {
+      rightPos = xScale(newHighlightArea.right) + marginLeft;
+    }
+
+    const brushArea = {
+      bottom: bottomPos,
+      right: rightPos,
+      left: leftPos,
+      top: topPos
+    };
+
+    const noHorizontal = Math.abs(brushArea.right - brushArea.left) < 5;
+    const noVertical = Math.abs(brushArea.top - brushArea.bottom) < 5;
+    // Invoke the callback with null if the selected area was < 5px
+    const isNulled = noVertical || noHorizontal;
+
+    this.setState({brushArea, dragArea: brushArea});
+    onBrushEnd(!isNulled ? this._convertAreaToCoordinates(brushArea) : null);
+  }
 
   _getDrawArea(xLoc, yLoc) {
     const {startLocX, startLocY} = this.state;

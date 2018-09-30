@@ -13,7 +13,8 @@ const {
   ZoomableChartExample,
   SelectionPlotExample,
   DragableChartExample,
-  BidirectionDragChart
+  BidirectionDragChart,
+  ControlledDragableChart
 } = showCase;
 
 const MISC = [
@@ -90,6 +91,11 @@ const MISC = [
     name: '2d Dragable Chart',
     component: BidirectionDragChart,
     componentName: 'BidirectionDragChart'
+  },
+  {
+    name: 'Dragable Chart controlling another',
+    component: ControlledDragableChart,
+    componentName: 'ControlledDragableChart'
   }
 ];
 
