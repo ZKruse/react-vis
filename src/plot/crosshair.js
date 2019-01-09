@@ -22,6 +22,8 @@ import React, {PureComponent} from 'react';
 
 import PropTypes from 'prop-types';
 
+import {transformValueToString} from 'utils/data-utils';
+
 import {getAttributeFunctor} from 'utils/scales-utils';
 
 /**
@@ -34,7 +36,7 @@ function defaultTitleFormat(values) {
   if (value) {
     return {
       title: 'x',
-      value: value.x
+      value: transformValueToString(value.x)
     };
   }
 }
@@ -77,7 +79,13 @@ class Crosshair extends PureComponent {
   static get propTypes() {
     return {
       className: PropTypes.string,
-      values: PropTypes.array,
+      values: PropTypes.arrayOf(
+        PropTypes.oneOfType([
+          PropTypes.number,
+          PropTypes.string,
+          PropTypes.object
+        ])
+      ),
       series: PropTypes.object,
       innerWidth: PropTypes.number,
       innerHeight: PropTypes.number,

@@ -72,6 +72,7 @@ export default class Example extends React.Component {
           buttonContent={content}
         />
         <XYPlot
+          margin={{left: 75}}
           xType="time"
           width={300}
           height={300}
